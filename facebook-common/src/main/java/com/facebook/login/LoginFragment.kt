@@ -38,9 +38,16 @@ import com.facebook.common.R
  * @see com.facebook.FacebookActivity
  */
 open class LoginFragment : Fragment() {
+  data class PendingActivityResult(
+    val requestCode: Int,
+    val resultCode: Int,
+    val data: Intent?
+  )
   private var callingPackage: String? = null
   lateinit var loginClient: LoginClient
     private set
+  private var _loginClient: LoginClient? = null
+  private var pendingActivityResult: PendingActivityResult? = null
   private var request: LoginClient.Request? = null
 
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -63,6 +70,11 @@ open class LoginFragment : Fragment() {
       if (bundle != null) {
         request = bundle.getParcelable(EXTRA_REQUEST)
       }
+    }
+    val pendingResult = pendingActivityResult
+    pendingActivityResult = null
+    if(pendingResult != null) {
+      loginClient.onActivityResult(pendingResult.requestCode, pendingResult.resultCode, pendingResult.data)
     }
   }
 
@@ -141,7 +153,12 @@ open class LoginFragment : Fragment() {
 
   override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
     super.onActivityResult(requestCode, resultCode, data)
-    loginClient.onActivityResult(requestCode, resultCode, data)
+    val loginClient = _loginClient
+    if (loginClient != null) {
+      loginClient.onActivityResult(requestCode, resultCode, data)
+    } else {
+      pendingActivityResult = PendingActivityResult(requestCode, resultCode, data)
+    }
   }
 
   override fun onSaveInstanceState(outState: Bundle) {
